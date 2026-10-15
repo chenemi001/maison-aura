@@ -1,0 +1,151 @@
+@import "tailwindcss";
+
+/*
+ * Maison Aura design tokens.
+ * Warm, editorial palette: cream / sand / burgundy. Text colours are
+ * contrast-checked against WCAG 2.2 AA on every surface they are used on.
+ */
+@theme {
+  --color-cream: #faf6f0;
+  --color-porcelain: #fffdf9;
+  --color-beige-100: #f3ebe0;
+  --color-beige-200: #e9dccb;
+  --color-beige-300: #d9c7ae;
+  --color-sand: #e6d6c1;
+  --color-stone: #efe9e2;
+  --color-taupe: #6f5f52;
+  --color-ink: #2b211d;
+  --color-burgundy-50: #f7ecec;
+  --color-burgundy-100: #efd9da;
+  --color-burgundy-500: #8c3446;
+  --color-burgundy-700: #6e1e2e;
+  --color-burgundy-800: #5a1724;
+  --color-burgundy-900: #43101a;
+  --color-burgundy-950: #2c0a11;
+  --color-gold: #a8844c;
+  --color-success: #2f6b4f;
+  --color-danger: #a12c2c;
+
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  /* Thin high-contrast display face for the wordmark and large headlines. */
+  --font-display: var(--font-wordmark), "Didot", Georgia, serif;
+  /* Readable editorial serif for headings and product names. */
+  --font-serif: var(--font-heading), Georgia, "Times New Roman", serif;
+
+  --tracking-luxe: 0.22em;
+  --ease-luxe: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+  --animate-marquee: marquee 40s linear infinite;
+
+  @keyframes shimmer {
+    0% {
+      background-position: -400px 0;
+    }
+    100% {
+      background-position: 400px 0;
+    }
+  }
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-burgundy-700);
+    outline-offset: 3px;
+  }
+
+  ::selection {
+    background: var(--color-burgundy-100);
+    color: var(--color-burgundy-900);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/*
+ * Transparent header over full-bleed heroes. Any page that renders an element
+ * with [data-hero] gets an overlaid header until the visitor scrolls — pure
+ * CSS, so there is no flash before hydration and no route-specific JS.
+ * Deliberately unlayered so it overrides the header's Tailwind utilities.
+ */
+.site-header {
+  transition:
+    background-color 0.4s var(--ease-luxe),
+    color 0.4s var(--ease-luxe),
+    border-color 0.4s var(--ease-luxe);
+}
+
+html:has([data-hero]) .site-header:not([data-scrolled="true"]) {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--color-porcelain);
+  backdrop-filter: none;
+}
+
+html:has([data-hero]) .site-header:not([data-scrolled="true"]) .site-header-icon:hover {
+  background-color: rgb(255 255 255 / 0.12);
+}
+
+@utility container-page {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 88rem;
+  padding-inline: 1rem;
+  @media (width >= 40rem) {
+    padding-inline: 1.5rem;
+  }
+  @media (width >= 64rem) {
+    padding-inline: 2.5rem;
+  }
+}
+
+@utility eyebrow {
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-luxe);
+  color: var(--color-taupe);
+}
