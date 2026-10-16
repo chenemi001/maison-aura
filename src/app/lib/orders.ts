@@ -1,4 +1,5 @@
 import "server-only";
+import { isSupabaseConfigured } from "@/app/lib/env";
 import { createAdminClient } from "@/app/lib/supabase/admin";
 import { createClient } from "@/app/lib/supabase/server";
 import type { PricedLine } from "@/app/lib/cart-pricing";
@@ -61,6 +62,8 @@ function mapOrder(row: OrderRow): Order {
 // ---------------------------------------------------------------------------
 
 export async function getOrdersForUser(userId: string): Promise<Order[]> {
+  // Orders live in Supabase; with the built-in auth provider there are none yet.
+  if (!isSupabaseConfigured()) return [];
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("orders")
@@ -74,7 +77,7 @@ export async function getOrdersForUser(userId: string): Promise<Order[]> {
 }
 
 export async function getOrderForUser(userId: string, orderId: string): Promise<Order | null> {
-  if (!UUID_RE.test(orderId)) return null;
+  if (!UUID_RE.test(orderId) || !isSupabaseConfigured()) return null;
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("orders")

@@ -106,11 +106,3 @@ test.describe("checkout", () => {
     await expect(page.getByText("No payment was taken")).toBeVisible();
   });
 });
-
-test.describe("accounts", () => {
-  test("account pages degrade gracefully without Supabase", async ({ page }) => {
-    test.skip(process.env.E2E_SUPABASE_ENABLED === "1", "only applies without Supabase");
-    await page.goto("/account");
-    await expect(page.getByRole("heading", { name: "Accounts are coming soon" })).toBeVisible();
-  });
-});

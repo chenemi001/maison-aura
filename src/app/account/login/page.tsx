@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { AccountsUnavailable } from "@/app/components/account/AccountsUnavailable";
 import { LoginForm } from "@/app/components/account/LoginForm";
 import { Skeleton } from "@/app/components/ui/Skeleton";
 import { getCurrentUser } from "@/app/lib/auth";
-import { isSupabaseConfigured } from "@/app/lib/env";
 import { safeRedirectPath } from "@/app/lib/validations";
 
 export const metadata: Metadata = {
@@ -26,7 +24,6 @@ export default function LoginPage({ searchParams }: PageProps<"/account/login">)
 }
 
 async function Login({ searchParams }: Pick<PageProps<"/account/login">, "searchParams">) {
-  if (!isSupabaseConfigured()) return <AccountsUnavailable />;
 
   const nextParam = (await searchParams).next;
   const next = safeRedirectPath(Array.isArray(nextParam) ? nextParam[0] : nextParam);

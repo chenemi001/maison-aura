@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * Next.js Proxy (formerly Middleware).
  *
  * 1. Refreshes the Supabase session cookie on authenticated routes so Server
- *    Components always see a valid token.
+ *    Components always see a valid token (when Supabase is configured).
  * 2. Redirects signed-out visitors away from private account pages with a
  *    real HTTP redirect (an optimistic check — every page and action still
  *    re-verifies the session itself).
@@ -20,11 +20,26 @@ function isProtected(pathname: string): boolean {
   return pathname.startsWith("/account") && !PUBLIC_ACCOUNT_PATHS.some((p) => pathname.startsWith(p));
 }
 
+function redirectToLogin(request: NextRequest) {
+  const login = request.nextUrl.clone();
+  login.pathname = "/account/login";
+  login.search = `?next=${encodeURIComponent(request.nextUrl.pathname)}`;
+  return NextResponse.redirect(login);
+}
+
 export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key =
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return NextResponse.next();
+
+  // Built-in auth provider: optimistic cookie check only. The signature is
+  // verified by the page itself (`requireUser`), which runs on Node.js.
+  if (!url || !key) {
+    if (isProtected(request.nextUrl.pathname) && !request.cookies.has("ma_session")) {
+      return redirectToLogin(request);
+    }
+    return NextResponse.next();
+  }
 
   let response = NextResponse.next({ request });
 
@@ -45,12 +60,7 @@ export async function proxy(request: NextRequest) {
   // getClaims() validates the JWT and refreshes an expired session if needed.
   const { data } = await supabase.auth.getClaims();
 
-  if (!data?.claims && isProtected(request.nextUrl.pathname)) {
-    const login = request.nextUrl.clone();
-    login.pathname = "/account/login";
-    login.search = `?next=${encodeURIComponent(request.nextUrl.pathname)}`;
-    return NextResponse.redirect(login);
-  }
+  if (!data?.claims && isProtected(request.nextUrl.pathname)) return redirectToLogin(request);
 
   return response;
 }

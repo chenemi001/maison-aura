@@ -19,12 +19,12 @@ It is designed for a catalogue of **50,000+ products**, with server rendering, i
 | **Discovery** | Faceted filters (category, skin type, concern, price band, stock), 5 sort orders, link-based pagination across 2,084 pages |
 | **Cart** | Slide-over bag drawer and full bag page, "quick add" on product cards, persistent storage (localStorage, synced across tabs), quantity limits, free-delivery progress, server-side re-pricing |
 | **Checkout** | Server-validated delivery form, Stripe-hosted payment page, signature-verified webhook, idempotent order state machine |
-| **Accounts** | Supabase email/password auth, protected account area, order history and order detail (Row Level Security) |
+| **Accounts** | Email/password sign-up, sign-in and sign-out that work with zero setup (built-in provider), or Supabase Auth when configured. Protected account area, order history and order detail (Row Level Security) |
 | **SEO** | Per-page metadata, canonical URLs, Open Graph images, JSON-LD (Organization, WebSite + SearchAction, Product, BreadcrumbList, ItemList), sitemap index split into 10k-URL chunks, robots.txt, web manifest |
 | **Performance** | Partial Prerendering, `"use cache"` data caching with tag revalidation, prerendered top products, preloaded LCP images, code-split client islands, self-hosted fonts |
 | **Accessibility** | Semantic landmarks, skip link, keyboard-operable controls, native `<dialog>` menu, labelled forms with inline errors, live regions, reduced-motion support, AA colour contrast |
 | **Resilience** | Route-level loading skeletons, error boundaries with retry, a global error boundary, not-found pages, forms that work without JavaScript |
-| **Quality** | 85 unit/component tests (Vitest), 46 end-to-end checks on desktop and mobile (Playwright), GitHub Actions CI |
+| **Quality** | 96 unit/component tests (Vitest), 58 end-to-end checks on desktop and mobile (Playwright), GitHub Actions CI |
 
 ## Tech stack
 
@@ -55,7 +55,23 @@ cp .env.example .env.local     # optional; every value can stay empty
 npm run dev                    # http://localhost:3000
 ```
 
-This gives you the full browsing experience: catalogue, search, filters, product pages and bag. Checkout and accounts explain that they are not enabled until you add keys.
+This gives you the full experience: catalogue, search, filters, product pages, bag, **and working customer accounts**. You can create an account at `/account/register`, sign out and sign back in with no external services. Checkout explains that payments are not enabled until you add keys.
+
+### How authentication works
+
+Authentication goes through one facade (`src/app/lib/auth.ts`) with two interchangeable providers:
+
+| | Built-in (default) | Supabase (when configured) |
+| --- | --- | --- |
+| Used when | No Supabase keys are set | `NEXT_PUBLIC_SUPABASE_URL` + key are set |
+| Passwords | scrypt (N=16384, per-user salt), constant-time comparison | Managed by Supabase Auth |
+| Sessions | HMAC-SHA256-signed token in an `HttpOnly`, `SameSite=Lax` cookie (30 days) | Supabase JWT cookies via `@supabase/ssr`, verified with `getClaims()` |
+| Storage | `.data/users.json` (atomic writes; gitignored) | Postgres `auth.users` |
+| Abuse protection | 5 failed sign-ins lock an email for 15 minutes; generic error messages; unknown emails take the same time to reject | Supabase rate limits |
+
+Both providers share the same validation (Zod), forms, protected routes (`src/proxy.ts` and `requireUser()`), and open-redirect-safe `?next=` handling. Pages never need to know which provider is active.
+
+> The built-in provider stores users on the server's disk, which suits local development and single-server hosting. Serverless platforms such as Vercel have no persistent disk, so **configure Supabase for production**. Set `AUTH_SECRET` (`openssl rand -base64 48`) for any shared environment. Locally, a secret is generated automatically in `.data/`.
 
 ### Enable accounts and orders (Supabase)
 
@@ -185,7 +201,7 @@ tests/unit, tests/e2e         # Vitest and Playwright suites
 ## Deploying to Vercel
 
 1. Push the repository to GitHub and import it at [vercel.com/new](https://vercel.com/new). The framework is detected automatically, so no `vercel.json` is needed.
-2. Add the environment variables from `.env.example` in **Project → Settings → Environment Variables**. Mark `SUPABASE_SECRET_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and `REVALIDATE_SECRET` as **Sensitive**. Set `NEXT_PUBLIC_SITE_URL` to your production domain.
+2. Add the environment variables from `.env.example` in **Project → Settings → Environment Variables**. Configure Supabase so customer accounts persist (the built-in auth provider needs a persistent disk). Mark `AUTH_SECRET`, `SUPABASE_SECRET_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and `REVALIDATE_SECRET` as **Sensitive**. Set `NEXT_PUBLIC_SITE_URL` to your production domain.
 3. In Stripe, add a webhook endpoint at `https://<your-domain>/api/webhooks/payment` that listens for `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` and `checkout.session.expired`. Use its signing secret for `STRIPE_WEBHOOK_SECRET`.
 4. In Supabase Auth, add your production Site URL and the `/auth/confirm` redirect URL.
 5. Deploy. Preview deployments automatically use their own URL for canonical links and Stripe redirects.
@@ -194,7 +210,8 @@ tests/unit, tests/e2e         # Vitest and Playwright suites
 
 - **Demo content.** Products are procedurally generated from a seeded PRNG. Photography comes from a curated pool of Unsplash images (free for commercial use; credits in [`public/images/CREDITS.md`](public/images/CREDITS.md)), so many products share photos. Editorial and model photography features Black women, reflecting the Nigerian customer base. Shots showing third-party brands were excluded. Ratings and review counts are illustrative.
 - **Not-found status under Partial Prerendering.** Unknown products and out-of-range pages render a not-found page with `<meta name="robots" content="noindex">`. Because the static shell may already be streaming, the HTTP status can be `200` instead of `404`. Search engines honour the `noindex` directive. Unknown categories return a real `404`.
-- **Orders need Supabase.** With Stripe configured but no Supabase secret key, payments still work, but orders are recorded only in Stripe.
+- **Orders need Supabase.** Order history is stored in Supabase. With the built-in auth provider, accounts work but the order list stays empty. With Stripe configured but no Supabase secret key, payments still work, but orders are recorded only in Stripe.
+- **Built-in auth is single-server.** Its file store doesn't persist on serverless hosting and has no email verification or password reset. Supabase provides both in production.
 - **Not yet included:** rate limiting on Server Actions (add one at the edge, e.g. Vercel Firewall or Upstash), Stripe Tax, inventory reservation, and transactional emails beyond Stripe receipts.
 - `npm audit` reports advisories in `eslint-config-next`'s transitive dev dependencies. They do not ship to production.
 

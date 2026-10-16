@@ -26,6 +26,7 @@ export function RegisterForm() {
         name="fullName"
         autoComplete="name"
         required
+        defaultValue={state.fullName}
         error={state.fieldErrors?.fullName}
       />
       <Input

@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { AccountsUnavailable } from "@/app/components/account/AccountsUnavailable";
 import { RegisterForm } from "@/app/components/account/RegisterForm";
 import { Skeleton } from "@/app/components/ui/Skeleton";
 import { getCurrentUser } from "@/app/lib/auth";
-import { isSupabaseConfigured } from "@/app/lib/env";
 
 export const metadata: Metadata = {
   title: "Create an account",
@@ -25,7 +23,6 @@ export default function RegisterPage() {
 }
 
 async function Register() {
-  if (!isSupabaseConfigured()) return <AccountsUnavailable />;
   if (await getCurrentUser()) redirect("/account");
 
   return (

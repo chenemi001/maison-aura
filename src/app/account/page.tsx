@@ -2,13 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { signOut } from "@/app/actions/auth";
-import { AccountsUnavailable } from "@/app/components/account/AccountsUnavailable";
 import { OrderList } from "@/app/components/account/OrderList";
 import { Button, ButtonLink } from "@/app/components/ui/Button";
 import { EmptyState } from "@/app/components/ui/EmptyState";
 import { Skeleton } from "@/app/components/ui/Skeleton";
 import { requireUser } from "@/app/lib/auth";
-import { isSupabaseConfigured } from "@/app/lib/env";
 import { getOrdersForUser } from "@/app/lib/orders";
 
 export const metadata: Metadata = {
@@ -27,7 +25,6 @@ export default function AccountPage() {
 }
 
 async function AccountOverview() {
-  if (!isSupabaseConfigured()) return <AccountsUnavailable />;
   const user = await requireUser("/account");
   const orders = await getOrdersForUser(user.id);
 

@@ -3,13 +3,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { AccountsUnavailable } from "@/app/components/account/AccountsUnavailable";
 import { OrderStatusBadge } from "@/app/components/account/OrderStatusBadge";
 import { Breadcrumbs } from "@/app/components/ui/Breadcrumbs";
 import { Skeleton } from "@/app/components/ui/Skeleton";
 import { requireUser } from "@/app/lib/auth";
 import { formatPrice } from "@/app/lib/currency";
-import { isSupabaseConfigured } from "@/app/lib/env";
 import { getOrderForUser } from "@/app/lib/orders";
 import { SHIPPING_COUNTRIES } from "@/app/lib/shipping";
 import { formatDate } from "@/app/lib/utils";
@@ -32,7 +30,6 @@ export default function OrderDetailPage({ params }: Props) {
 }
 
 async function OrderDetail({ params }: Pick<Props, "params">) {
-  if (!isSupabaseConfigured()) return <AccountsUnavailable />;
   const { id } = await params;
   const user = await requireUser(`/account/orders/${id}`);
   const order = await getOrderForUser(user.id, id);
